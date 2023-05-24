@@ -1,0 +1,188 @@
+
+1.在一台设备上执行命令
+
+import paramiko
+
+def ssh_client():
+    # 创建一个实例化
+    ssh = paramiko.SSHClient()
+    # 加载系统HostKeys密钥
+    ssh.load_system_host_keys()
+    # 自动添加策略，保存远端主机的主机名和密钥信息，如果不添加，那么不在本地knows_hosts文件中记录的主机将无法连接，默认拒接
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    #连接远端主机
+    ssh.connect('100.100.130.130',port=22, username='***', password='***')
+    #执行命令
+    stdin, stdout,stderr = ssh.exec_command('show ip int br')
+    print(stdout.read().decode('utf-8'))
+	#关闭连接
+    ssh.close()
+
+if __name__ == '__main__':
+    ssh_client()
+    
+    
+ 2. 批量执行一条命令在多台交换机
+ 
+import paramiko
+
+def ssh2(ip,username,passwd,cmd):
+    try:
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(ip,22,username,passwd,timeout=5)
+        for m in cmd:
+            stdin, stdout, stderr = ssh.exec_command(m)
+            out = stdout.readlines()
+            for o in out:
+                print(o)
+        print('Success to login',ip)
+        ssh.close()
+    except :
+        print('%s\tError\n'%(ip))
+
+if __name__=='__main__':
+    cmd = ['show version']
+    username = "****"
+    passwd = "***"
+    with open('cgc5-ip.txt') as f:
+        for line in f.readlines():
+            ip = line.strip()
+            ssh2(ip,username,passwd,cmd)
+ 
+    
+    
+    3. 多台思科交换机批量执行命令python，上面执行多条命令有问题，原因：
+
+https://fivezh.github.io/2016/02/15/Python-ssh-switches-control/;
+
+https://stackoverflow.com/questions/31477121/python-paramiko-ssh-exception-ssh-session-not-active
+
+
+
+import paramiko
+import time
+
+def ssh2(ip,username,passwd):
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(ip,22,username,passwd,timeout=5)
+        print('Success to login',ip) 
+        
+        channel = ssh.invoke_shell()   
+        channel.send('show version\n                \n \n\n\n\n')
+        channel.send('show boot\n                  \n \n\n\n\n')
+       
+        time.sleep(5)
+        resp = channel.recv(1000000)
+        print (resp)
+
+if __name__=='__main__':
+
+    username = "***_nm"
+    passwd = "***"
+    with open('ip.txt') as f:
+        for line in f.readlines():
+            ip = line.strip()
+            ssh2(ip,username,passwd)
+    
+    
+    
+    4. 多台思科交换机批量执行命令python，升级firmware各步骤：添加FTP账户，back up config，Remove other installation，Copy bin file to SW，Varify and reload
+    
+import paramiko
+import time
+
+def ssh2(ip,username,passwd):
+
+        ssh = paramiko.SSHClient()
+        ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+        ssh.connect(ip,22,username,passwd,timeout=5)
+        print('Success to login',ip) 
+        
+        channel = ssh.invoke_shell()  
+
+# #     Add ip ftp user
+#         channel.send('conf t\n                \n \n\n\n\n')
+#         channel.send('ip ftp username ***\n                  \n \n\n\n\n')
+#         channel.send('ip ftp password ***\n                  \n \n\n\n\n')
+#         channel.send('end\n                  \n \n\n\n\n')
+#         channel.send('wr\n                  \n \n\n\n\n')
+
+
+# #     Send config to FTP
+#         channel.send('copy running-config ftp://10.50.10.210/***/%s.txt \n\n\n\n\n                \n \n\n\n\n' %(ip))    
+#         time.sleep(3)
+
+
+
+# #     Install process
+# #     Remove other installation
+#         channel.send('install remove inactive\n\n                \n \n\n\n\n')
+#         time.sleep(240)
+#         channel.send('y\n                \n \n\n\n\n')
+#         time.sleep(2)
+#         channel.send('\n                \n \n\n\n\n')
+#         channel.send('write mem\n                \n \n\n\n\n')
+#         time.sleep(60)
+        
+        
+#         time.sleep(60)
+# #     Copy bin file to SW
+#         channel.send('copy ftp://10.50.10.210/firmware/cat9k_iosxe.17.06.05.SPA.bin flash:/ \n                \n \n\n\n\n')
+#         time.sleep(60)
+        
+        
+# #     Varify the bin file
+#         channel.send('verify /md5 flash:/cat9k_iosxe.17.06.05.SPA.bin \n                \n \n\n\n\n')
+#         time.sleep(120)
+
+# #     "Reload at/in" method to upgrade
+#         channel.send('configure terminal\n                \n \n\n\n\n')
+#         channel.send('no boot system\n                \n \n\n\n\n')
+#         channel.send('boot system flash:cat9k_iosxe.17.06.05.SPA.bin\n                \n \n\n\n\n')
+#         channel.send('end\n                \n \n\n\n\n')
+#         channel.send('wr\n                \n \n\n\n\n')
+#         channel.send('show boot\n                \n \n\n\n\n')
+        
+#         channel.send('reload in\n                \n \n\n\n\n')
+#         time.sleep(2)
+#         channel.send('\n                \n \n\n\n\n')
+        
+#         channel.send('reload at 11:00 dec 29\n                \n \n\n\n\n')
+        
+        
+
+
+#         channel.send('show version\n')
+#         time.sleep(3)
+#         channel.send('\n\n\n\n\n')
+#         channel.send('show reload\n                \n \n\n\n\n'
+#         time.sleep(2)
+        
+#     "Install" method to upgrade
+#         channel.send('install add file flash:cat9k_iosxe.17.06.05.SPA.bin activate commit\n                \n \n\n\n\n')
+#         time.sleep(600)
+#         channel.send('y\n                \n \n\n\n\n')
+        
+    
+        resp = channel.recv(1000000000)
+        print (resp)
+
+if __name__=='__main__':
+
+    username = "*****"
+    passwd = "****"
+    with open('AAA.txt') as f:
+        for line in f.readlines():
+            ip = line.strip()
+            ssh2(ip,username,passwd)
+    
+    
+    
+    
+    
+    
+    
+    
